@@ -1,8 +1,1964 @@
 # The Ultimate .NET and C# Interview Questions
 
 Audience: Senior .NET engineers. Version assumptions: C# 12, .NET 8+.
+## Junior Engineers
+### Table of Contents
 
-## Table of Contents
+- Variables, Data Types, and Type Inference
+- Value vs Reference Types
+- Control Flow (if/else, switch, loops)
+- Methods and Parameters (ref/out/in), Return Values
+- Classes, Structs, and Basic OOP (Inheritance, Encapsulation, Polymorphism)
+- Interfaces and Abstract Classes
+- Collections and Arrays
+- Exceptions and Basic Error Handling
+- Strings and Basic Formatting/Interpolation
+- Basic LINQ (Select, Where, First, Count, etc.)
+- Simple async/await and Task Basics
+- File I/O Fundamentals
+- Simple Unit Testing
+
+---
+
+## Variables, Data Types, and Type Inference
+
+<details>
+<summary>Q1. var type inference — what is the type?</summary>
+
+```csharp
+var x = 5;
+var y = 5.0;
+var z = '5';
+Console.WriteLine($"{x.GetType().Name}, {y.GetType().Name}, {z.GetType().Name}");
+```
+
+Question:
+- What types are inferred for x, y, and z, and what prints?
+
+Answer:
+- x is int, y is double, z is char.
+- Prints: Int32, Double, Char
+
+Explanation:
+- `var` is compile-time type inference. The assigned expression determines the static type.
+
+Takeaway:
+- Use `var` when the type is obvious from the right-hand side or not critical to readability.
+</details>
+
+<details>
+<summary>Q2. default literals and target typing — does this compile?</summary>
+
+```csharp
+var a = default(int);
+var b = default(string);
+var c = default; // ?
+```
+
+Question:
+- Which lines compile, and what values are assigned?
+
+Answer:
+- First two compile: `a == 0`, `b == null`.
+- `var c = default;` does not compile because there is no target type for the default literal.
+
+Takeaway:
+- `default` without a target type is invalid; use `default(T)` or an explicit cast.
+</details>
+
+<details>
+<summary>Q3. Decimal vs double — what’s the output?</summary>
+
+```csharp
+double dx = 0.1 + 0.2;
+decimal m = 0.1m + 0.2m;
+Console.WriteLine(dx == 0.3);
+Console.WriteLine(m == 0.3m);
+```
+
+Question:
+- Which comparisons are true?
+
+Answer:
+- `dx == 0.3` is False (binary floating-point precision).
+- `m == 0.3m` is True (decimal is base-10 friendly).
+
+Takeaway:
+- Use `decimal` for financial calculations; double is binary floating-point and non-exact for many decimals.
+</details>
+
+<details>
+<summary>Q4. Implicit numeric conversions — which compile?</summary>
+
+```csharp
+int i = 100;
+long l = i;        // ok
+float f = i;       // ok (lossy possible)
+int i2 = l;        // ?
+double d = f;      // ok
+```
+
+Question:
+- Which assignment fails to compile and why?
+
+Answer:
+- `int i2 = l;` fails because narrowing conversions require an explicit cast.
+
+Takeaway:
+- Widening conversions are implicit; narrowing conversions require casts. Be careful with potential data loss.
+</details>
+
+<details>
+<summary>Q5. Constant expressions — what’s allowed?</summary>
+
+```csharp
+const int A = 10;
+const int B = A + 5;       // ok
+var rand = new Random();
+const int C = rand.Next(); // ?
+```
+
+Question:
+- Does the last line compile?
+
+Answer:
+- No. `const` requires compile-time constants. `Random.Next()` is runtime.
+
+Takeaway:
+- Use `const` for compile-time constants only; otherwise use `readonly` fields for runtime immutability.
+</details>
+
+<details>
+<summary>Q6. Explicit casts vs Convert — what’s printed?</summary>
+
+```csharp
+double d = 9.7;
+int a = (int)d;
+int b = Convert.ToInt32(d);
+Console.WriteLine($"{a}, {b}");
+```
+
+Question:
+- What prints and why?
+
+Answer:
+- Prints `9, 10`. Cast truncates; `Convert.ToInt32` rounds to nearest even (MidpointRounding.ToEven by default), resulting in 10 here.
+
+Takeaway:
+- Casting truncates toward zero; Convert performs rounding. Choose deliberately.
+</details>
+
+---
+
+## Value vs Reference Types
+
+<details>
+<summary>Q7. Value copy vs reference — what prints?</summary>
+
+```csharp
+struct Point { public int X; }
+class RefPoint { public int X; }
+
+var p = new Point { X = 1 };
+var rp = new RefPoint { X = 1 };
+
+var p2 = p;
+var rp2 = rp;
+
+p2.X = 2;
+rp2.X = 2;
+
+Console.WriteLine($"{p.X}, {rp.X}");
+```
+
+Question:
+- What prints and why?
+
+Answer:
+- Prints `1, 2`. Struct assignment copies by value; class assignment copies the reference (both variables refer to same object).
+
+Takeaway:
+- Understand value vs reference semantics to reason about mutations.
+</details>
+
+<details>
+<summary>Q8. Passing structs to methods — is it a copy?</summary>
+
+```csharp
+struct S { public int V; }
+void Inc(S s) { s.V++; }
+
+var s0 = new S { V = 1 };
+Inc(s0);
+Console.WriteLine(s0.V);
+```
+
+Question:
+- What prints?
+
+Answer:
+- Prints `1`. Parameter is passed by value (copy). To mutate caller state, use `ref`.
+
+Takeaway:
+- Value types are copied by default. Use `ref` for in-place modification.
+</details>
+
+<details>
+<summary>Q9. Boxing with object — memory behavior?</summary>
+
+```csharp
+int i = 42;
+object o = i;   // boxing
+i = 43;
+Console.WriteLine(o); // ?
+```
+
+Question:
+- What prints and why?
+
+Answer:
+- Prints `42`. Boxing creates a copy on the heap; later changes to `i` don’t affect the boxed copy.
+
+Takeaway:
+- Boxing copies the value. Minimize boxing in performance-sensitive paths.
+</details>
+
+<details>
+<summary>Q10. Nullable value types — HasValue?</summary>
+
+```csharp
+int? a = null;
+int? b = 0;
+Console.WriteLine($"{a.HasValue}, {b.HasValue}");
+```
+
+Question:
+- What prints?
+
+Answer:
+- `False, True`. `0` is a valid value; null means no value.
+
+Takeaway:
+- `Nullable<T>` differentiates between null and default value of T.
+</details>
+
+<details>
+<summary>Q11. Reference vs value equality basics</summary>
+
+```csharp
+var a = new int[] { 1 };
+var b = new int[] { 1 };
+Console.WriteLine(a == b);                 // ?
+Console.WriteLine(Equals(a, b));           // ?
+Console.WriteLine(ReferenceEquals(a, b));  // ?
+```
+
+Answer:
+- `a == b` is False for arrays (reference comparison).
+- `Equals(a, b)` is also reference equality for arrays, so False.
+- `ReferenceEquals(a, b)` is False.
+
+Takeaway:
+- Arrays don’t override equality to value semantics. For sequence equality, use `Enumerable.SequenceEqual`.
+</details>
+
+<details>
+<summary>Q12. Strings: reference vs value equality</summary>
+
+```csharp
+string s1 = "abc";
+string s2 = new string(new[] { 'a','b','c' });
+Console.WriteLine(s1 == s2);
+Console.WriteLine(object.ReferenceEquals(s1, s2));
+```
+
+Answer:
+- `s1 == s2` is True (value equality).
+- `ReferenceEquals(s1, s2)` is typically False (different instances), unless interning occurs.
+
+Takeaway:
+- Strings override `==` to mean value equality. Use `ReferenceEquals` only for identity checks, not content.
+</details>
+
+---
+
+## Control Flow (if/else, switch, loops)
+
+<details>
+<summary>Q13. if/else chaining — which branch executes?</summary>
+
+```csharp
+int x = 10;
+if (x > 10) Console.Write("A");
+else if (x == 10) Console.Write("B");
+else Console.Write("C");
+```
+
+Answer:
+- Prints `B`. Conditions are evaluated in order until one matches.
+
+Takeaway:
+- Order matters with if/else chains; place more specific conditions first.
+</details>
+
+<details>
+<summary>Q14. switch expression basics — what prints?</summary>
+
+```csharp
+int n = 2;
+string result = n switch
+{
+    1 => "one",
+    2 => "two",
+    _ => "other"
+};
+Console.WriteLine(result);
+```
+
+Answer:
+- Prints `two`.
+
+Takeaway:
+- Switch expressions are concise and exhaustive. Use `_` for the default case.
+</details>
+
+<details>
+<summary>Q15. for loop variable scope — what prints?</summary>
+
+```csharp
+for (int i = 0; i < 3; i++) { }
+Console.WriteLine(i); // ?
+```
+
+Answer:
+- Does not compile. `i` is scoped to the for loop.
+
+Takeaway:
+- Loop variables are local to the loop construct.
+</details>
+
+<details>
+<summary>Q16. while vs do-while — how many prints?</summary>
+
+```csharp
+int i = 0;
+while (i > 0) Console.WriteLine("W");
+do { Console.WriteLine("D"); } while (i > 0);
+```
+
+Answer:
+- Prints `D` once; while prints nothing. do-while executes the body at least once.
+
+Takeaway:
+- Use do-while when the body must run at least once before checking the condition.
+</details>
+
+<details>
+<summary>Q17. break vs continue — what’s the output?</summary>
+
+```csharp
+for (int i = 0; i < 5; i++)
+{
+    if (i == 2) continue;
+    if (i == 4) break;
+    Console.Write(i);
+}
+```
+
+Answer:
+- Prints `013`. `continue` skips the rest of the loop for `i==2`; `break` exits when `i==4`.
+
+Takeaway:
+- `continue` skips current iteration; `break` exits the loop entirely.
+</details>
+
+<details>
+<summary>Q18. Basic pattern matching with type — what prints?</summary>
+
+```csharp
+object o = 5;
+if (o is int v) Console.WriteLine(v + 1);
+```
+
+Answer:
+- Prints `6`. The `is` pattern both checks type and introduces a variable.
+
+Takeaway:
+- Pattern matching reduces casting boilerplate and improves readability.
+</details>
+
+---
+
+## Methods and Parameters (ref/out/in), Return Values
+
+<details>
+<summary>Q19. Method overloading basics — which overload is chosen?</summary>
+
+```csharp
+void M(int x) => Console.WriteLine("int");
+void M(double x) => Console.WriteLine("double");
+M(5);
+M(5.0);
+M(5f); // float
+```
+
+Answer:
+- Prints `int`, `double`, `double`. `float` converts to double as the best match.
+
+Takeaway:
+- Overload resolution prefers the best conversion; beware ambiguous overloads.
+</details>
+
+<details>
+<summary>Q20. ref parameter — does it modify the caller’s variable?</summary>
+
+```csharp
+void Inc(ref int x) => x++;
+int a = 1;
+Inc(ref a);
+Console.WriteLine(a);
+```
+
+Answer:
+- Prints `2`. `ref` passes by reference, enabling in-place modification.
+
+Takeaway:
+- Use `ref` when in-place updates are necessary and clear to the caller.
+</details>
+
+<details>
+<summary>Q21. out parameter — what must you do?</summary>
+
+```csharp
+bool TryParse(string s, out int value)
+{
+    // value++; // ?
+    value = 0;
+    return int.TryParse(s, out value);
+}
+```
+
+Answer:
+- `out` parameters must be definitely assigned before any return. You cannot read from an `out` parameter before assignment.
+
+Takeaway:
+- With `out`, the callee must assign; the caller need not initialize.
+</details>
+
+<details>
+<summary>Q22. in parameter — what’s allowed?</summary>
+
+```csharp
+void Sum(in int x, in int y)
+{
+    // x++; // not allowed
+    Console.WriteLine(x + y);
+}
+```
+
+Answer:
+- `in` is a by-ref, read-only parameter; you cannot assign to it in the method.
+
+Takeaway:
+- `in` avoids copying for large structs and guarantees read-only semantics.
+</details>
+
+<details>
+<summary>Q23. Return by value vs by ref — basics</summary>
+
+```csharp
+int[] arr = {1,2,3};
+ref int RefToSecond(int[] a) => ref a[1];
+
+ref int r = ref RefToSecond(arr);
+r = 42;
+Console.WriteLine(arr[1]);
+```
+
+Answer:
+- Prints `42`. Returning by `ref` exposes a reference to the caller.
+
+Takeaway:
+- Ref returns are powerful but require care; they expose internal storage.
+</details>
+
+<details>
+<summary>Q24. Named and optional parameters — which call is valid?</summary>
+
+```csharp
+void Greet(string name = "World", string prefix = "Hello")
+{
+    Console.WriteLine($"{prefix}, {name}!");
+}
+
+Greet();
+Greet("Alice");
+Greet(prefix: "Hi");
+Greet(prefix: "Hi", name: "Bob");
+```
+
+Answer:
+- All are valid. Outputs:
+  - Hello, World!
+  - Hello, Alice!
+  - Hi, World!
+  - Hi, Bob!
+
+Takeaway:
+- Optional parameters and named arguments improve call-site readability; avoid ambiguity with overloads.
+</details>
+
+---
+
+## Classes, Structs, and Basic OOP
+
+<details>
+<summary>Q25. Constructor overloading — which one runs?</summary>
+
+```csharp
+class C
+{
+    public C() : this(0) { Console.WriteLine("Default"); }
+    public C(int x) { Console.WriteLine($"C(int={x})"); }
+}
+var c = new C();
+```
+
+Answer:
+- Prints:
+  - C(int=0)
+  - Default
+
+Takeaway:
+- Use constructor chaining to centralize initialization logic.
+</details>
+
+<details>
+<summary>Q26. Encapsulation — property with backing field</summary>
+
+```csharp
+class Person
+{
+    private int _age;
+    public int Age
+    {
+        get => _age;
+        set => _age = value < 0 ? 0 : value;
+    }
+}
+var p = new Person { Age = -5 };
+Console.WriteLine(p.Age);
+```
+
+Answer:
+- Prints `0`. Setter enforces invariant.
+
+Takeaway:
+- Encapsulation protects invariants; prefer properties over public fields.
+</details>
+
+<details>
+<summary>Q27. Inheritance and virtual override — which method prints?</summary>
+
+```csharp
+class Base { public virtual void Speak() => Console.WriteLine("Base"); }
+class Derived : Base { public override void Speak() => Console.WriteLine("Derived"); }
+
+Base b = new Derived();
+b.Speak();
+```
+
+Answer:
+- Prints `Derived`. Virtual dispatch uses runtime type.
+
+Takeaway:
+- Polymorphism is enabled via virtual/override.
+</details>
+
+<details>
+<summary>Q28. Method hiding with new — which method prints?</summary>
+
+```csharp
+class B { public void Show() => Console.WriteLine("B.Show"); }
+class D : B { public new void Show() => Console.WriteLine("D.Show"); }
+
+B b = new D();
+D d = new D();
+b.Show();
+d.Show();
+```
+
+Answer:
+- Prints:
+  - B.Show
+  - D.Show
+
+Takeaway:
+- `new` hides non-virtual members; dispatch is based on static type, not runtime.
+</details>
+
+<details>
+<summary>Q29. Struct default constructor — what values?</summary>
+
+```csharp
+struct S
+{
+    public int X;
+    public bool B;
+}
+var s = new S();
+Console.WriteLine($"{s.X}, {s.B}");
+```
+
+Answer:
+- Prints `0, False`. Value types are zero-initialized by default.
+
+Takeaway:
+- Structs have an implicit default constructor that zero-initializes fields.
+</details>
+
+<details>
+<summary>Q30. Readonly auto-properties with init setters</summary>
+
+```csharp
+class Book
+{
+    public string Title { get; init; } = "Untitled";
+}
+var book = new Book { Title = "C# Basics" };
+// book.Title = "X"; // ?
+Console.WriteLine(book.Title);
+```
+
+Answer:
+- Prints `C# Basics`. Attempting to set Title after object initialization is a compile error.
+
+Takeaway:
+- `init` enables immutable-by-convention properties settable during object initialization.
+</details>
+
+---
+
+## Interfaces and Abstract Classes
+
+<details>
+<summary>Q31. Implementing an interface — which member must be provided?</summary>
+
+```csharp
+interface IGreeter { void Greet(string name); }
+abstract class GreeterBase : IGreeter
+{
+    public abstract void Greet(string name);
+}
+class ConsoleGreeter : GreeterBase
+{
+    public override void Greet(string name) => Console.WriteLine($"Hello, {name}");
+}
+```
+
+Question:
+- Is this valid and why?
+
+Answer:
+- Yes. Interface contract is fulfilled by the derived concrete class via abstract override.
+
+Takeaway:
+- Abstract classes can partially implement interfaces; concrete subclasses must complete the contract.
+</details>
+
+<details>
+<summary>Q32. Abstract class instantiation — allowed?</summary>
+
+```csharp
+abstract class Shape { public abstract double Area(); }
+var s = new Shape(); // ?
+```
+
+Answer:
+- Does not compile. Abstract classes cannot be instantiated.
+
+Takeaway:
+- Abstract classes define contracts + shared behavior; only concrete subclasses instantiate.
+</details>
+
+<details>
+<summary>Q33. Explicit interface implementation — which method is called?</summary>
+
+```csharp
+interface I { void M(); }
+class C : I
+{
+    void I.M() => Console.WriteLine("I.M");
+    public void M() => Console.WriteLine("C.M");
+}
+var c = new C();
+c.M();
+((I)c).M();
+```
+
+Answer:
+- Prints:
+  - C.M
+  - I.M
+
+Takeaway:
+- Explicit implementations are only accessible via the interface reference; useful to avoid name clashes.
+</details>
+
+<details>
+<summary>Q34. Multiple interfaces with same member name</summary>
+
+```csharp
+interface IA { void M(); }
+interface IB { void M(); }
+class C : IA, IB
+{
+    public void M() => Console.WriteLine("C.M");
+}
+IA a = new C();
+IB b = new C();
+a.M(); b.M();
+```
+
+Answer:
+- Both calls print `C.M`. Single public method can satisfy both interfaces if semantics match.
+
+Takeaway:
+- One implementation can satisfy multiple interface contracts with identical signatures.
+</details>
+
+<details>
+<summary>Q35. Default interface methods — can they provide behavior?</summary>
+
+```csharp
+interface I
+{
+    void A();
+    void B() => Console.WriteLine("Default B");
+}
+class C : I
+{
+    public void A() => Console.WriteLine("C.A");
+}
+I i = new C();
+i.A(); i.B();
+```
+
+Answer:
+- Prints:
+  - C.A
+  - Default B
+
+Takeaway:
+- Interfaces can provide default implementations (C# 8+); still use judiciously to keep contracts clear.
+</details>
+
+<details>
+<summary>Q36. Sealed override in inheritance chain</summary>
+
+```csharp
+class B { public virtual void M() {} }
+class D : B
+{
+    public sealed override void M() { }
+}
+class E : D
+{
+    // public override void M() {} // ?
+}
+```
+
+Answer:
+- `E` cannot override `M`; `sealed override` stops further overriding.
+
+Takeaway:
+- Use `sealed override` to lock down an override at a specific point in the hierarchy.
+</details>
+
+---
+
+## Collections and Arrays
+
+<details>
+<summary>Q37. Array indexing — what prints?</summary>
+
+```csharp
+int[] a = { 10, 20, 30 };
+Console.WriteLine($"{a[0]}, {a[^1]}");
+```
+
+Answer:
+- Prints `10, 30`. `^1` is the last element (C# index-from-end).
+
+Takeaway:
+- Use `^` and ranges for expressive indexing in arrays and spans.
+</details>
+
+<details>
+<summary>Q38. Range slicing — what’s the result?</summary>
+
+```csharp
+int[] a = { 1,2,3,4,5 };
+int[] slice = a[1..4];
+Console.WriteLine(string.Join(",", slice));
+```
+
+Answer:
+- Prints `2,3,4`. Ranges are end-exclusive.
+
+Takeaway:
+- Ranges `[start..end)` are zero-based and end-exclusive.
+</details>
+
+<details>
+<summary>Q39. List capacity vs Count — what changes?</summary>
+
+```csharp
+var list = new List<int>(capacity: 1);
+list.Add(1);
+list.Add(2);
+Console.WriteLine($"{list.Count}, {list.Capacity >= 2}");
+```
+
+Answer:
+- Prints `2, True`. Capacity grows automatically as needed.
+
+Takeaway:
+- List auto-resizes; pre-sizing can reduce reallocations for known sizes.
+</details>
+
+<details>
+<summary>Q40. Dictionary key lookup — what prints?</summary>
+
+```csharp
+var dict = new Dictionary<string, int>
+{
+    ["a"] = 1
+};
+Console.WriteLine(dict.ContainsKey("a"));
+Console.WriteLine(dict.TryGetValue("b", out var v));
+Console.WriteLine(v);
+```
+
+Answer:
+- Prints:
+  - True
+  - False
+  - 0
+
+Explanation:
+- When TryGetValue fails, `out v` is set to default (0 for int).
+
+Takeaway:
+- Use `TryGetValue` to avoid exceptions and extra lookups.
+</details>
+
+<details>
+<summary>Q41. Queue and Stack basics — what order?</summary>
+
+```csharp
+var q = new Queue<int>();
+q.Enqueue(1); q.Enqueue(2); q.Enqueue(3);
+Console.WriteLine(q.Dequeue()); // ?
+
+var s = new Stack<int>();
+s.Push(1); s.Push(2); s.Push(3);
+Console.WriteLine(s.Pop()); // ?
+```
+
+Answer:
+- Dequeue prints `1` (FIFO).
+- Pop prints `3` (LIFO).
+
+Takeaway:
+- Queue is FIFO; Stack is LIFO. Choose based on access pattern.
+</details>
+
+<details>
+<summary>Q42. foreach vs for — can you modify the collection?</summary>
+
+```csharp
+var list = new List<int> {1,2,3};
+foreach (var n in list)
+{
+    // list.Add(4); // ?
+    Console.Write(n);
+}
+```
+
+Answer:
+- Modifying the collection during `foreach` iteration throws `InvalidOperationException`.
+
+Takeaway:
+- Don’t structurally modify a collection while enumerating it. Collect changes and apply later.
+</details>
+
+---
+
+## Exceptions and Basic Error Handling
+
+<details>
+<summary>Q43. Catching specific exception types — which catch runs?</summary>
+
+```csharp
+try
+{
+    int x = int.Parse("not-an-int");
+}
+catch (FormatException)
+{
+    Console.WriteLine("Format");
+}
+catch (Exception)
+{
+    Console.WriteLine("General");
+}
+```
+
+Answer:
+- Prints `Format`. More specific catch should appear before general catch.
+
+Takeaway:
+- Order catch blocks from most specific to most general.
+</details>
+
+<details>
+<summary>Q44. finally block behavior — does it always run?</summary>
+
+```csharp
+try
+{
+    Console.WriteLine("Try");
+}
+finally
+{
+    Console.WriteLine("Finally");
+}
+```
+
+Answer:
+- Prints:
+  - Try
+  - Finally
+
+Takeaway:
+- `finally` runs whether or not an exception is thrown, including most early returns; avoid `Environment.FailFast` or process termination if cleanup is required.
+</details>
+
+<details>
+<summary>Q45. Throwing your own exception — best practice?</summary>
+
+```csharp
+if (filePath is null)
+    throw new ArgumentNullException(nameof(filePath));
+```
+
+Question:
+- Why use `nameof` and specific exception types?
+
+Answer:
+- `nameof` reduces magic strings; specific exception types communicate intent and enable targeted handling.
+
+Takeaway:
+- Throw the most specific applicable exception and use `nameof` for parameter names.
+</details>
+
+<details>
+<summary>Q46. Try-catch around minimal code</summary>
+
+```csharp
+try
+{
+    // many lines of code
+    var content = File.ReadAllText("missing.txt");
+    // many more lines
+}
+catch (IOException ex)
+{
+    Console.WriteLine(ex.Message);
+}
+```
+
+Question:
+- What’s a better structure?
+
+Answer:
+- Wrap only the risky call in try-catch or separate it into a method to avoid catching unrelated errors.
+
+Takeaway:
+- Keep try blocks small and focused on the operations that can throw the expected exceptions.
+</details>
+
+<details>
+<summary>Q47. Re-throwing with `throw;` preserves stack</summary>
+
+```csharp
+try
+{
+    MightThrow();
+}
+catch (Exception)
+{
+    // log
+    throw;
+}
+```
+
+Answer:
+- `throw;` rethrows with original stack trace intact.
+
+Takeaway:
+- Prefer `throw;` to preserve stack trace; avoid `throw ex;` unless you intentionally reset context.
+</details>
+
+---
+
+## Strings and Basic Formatting/Interpolation
+
+<details>
+<summary>Q48. String interpolation — what prints?</summary>
+
+```csharp
+int x = 5;
+Console.WriteLine($"x = {x}, x+1 = {x + 1}");
+```
+
+Answer:
+- Prints `x = 5, x+1 = 6`.
+
+Takeaway:
+- Interpolation embeds expressions inside strings; prefer for clarity.
+</details>
+
+<details>
+<summary>Q49. Verbatim strings and escaping</summary>
+
+```csharp
+var path1 = "C:\\temp\\file.txt";
+var path2 = @"C:\temp\file.txt";
+Console.WriteLine(path1 == path2);
+```
+
+Answer:
+- Prints `True`. Verbatim strings `@""` avoid needing to escape backslashes.
+
+Takeaway:
+- Use verbatim strings for paths and multiline text; double quotes are escaped as `""`.
+</details>
+
+<details>
+<summary>Q50. String.Format and standard numeric formats</summary>
+
+```csharp
+double n = 1234.567;
+Console.WriteLine(string.Format("{0:F2}", n));
+Console.WriteLine($"{n:N1}");
+```
+
+Answer:
+- Prints:
+  - 1234.57
+  - 1,234.6 (culture-dependent thousands separator)
+
+Takeaway:
+- Use standard numeric format strings; remember they are culture-sensitive by default.
+</details>
+
+<details>
+<summary>Q51. String immutability — what prints?</summary>
+
+```csharp
+string s = "a";
+s += "b";
+Console.WriteLine(s);
+```
+
+Answer:
+- Prints `ab`. Each concatenation creates a new string.
+
+Takeaway:
+- Strings are immutable. For repeated concatenations, use `StringBuilder` or `string.Create` when performance matters.
+</details>
+
+<details>
+<summary>Q52. Case-insensitive comparisons</summary>
+
+```csharp
+string a = "Hello";
+string b = "hello";
+Console.WriteLine(a.Equals(b, StringComparison.OrdinalIgnoreCase));
+```
+
+Answer:
+- Prints `True`.
+
+Takeaway:
+- Always specify `StringComparison` to avoid culture-related surprises.
+</details>
+
+---
+
+## Basic LINQ (Select, Where, First, Count, etc.)
+
+<details>
+<summary>Q53. Select and Where — what’s the output?</summary>
+
+```csharp
+var nums = new[] { 1,2,3,4,5 };
+var evensTimesTwo = nums.Where(n => n % 2 == 0).Select(n => n * 2);
+Console.WriteLine(string.Join(",", evensTimesTwo));
+```
+
+Answer:
+- Prints `4,8`.
+
+Takeaway:
+- LINQ pipelines are readable and composable for simple queries.
+</details>
+
+<details>
+<summary>Q54. First vs FirstOrDefault — difference?</summary>
+
+```csharp
+var empty = Array.Empty<int>();
+// var x = empty.First(); // ?
+var y = empty.FirstOrDefault();
+Console.WriteLine(y);
+```
+
+Answer:
+- `First()` would throw `InvalidOperationException`.
+- `FirstOrDefault()` returns default(int) which is `0`.
+
+Takeaway:
+- Use `FirstOrDefault` when sequences may be empty, then check the result or use nullable types.
+</details>
+
+<details>
+<summary>Q55. Count vs Any — performance choice?</summary>
+
+```csharp
+var items = Enumerable.Range(1, 10);
+// bool hasAny = items.Count() > 0; // less efficient
+bool hasAny = items.Any();          // efficient
+Console.WriteLine(hasAny);
+```
+
+Answer:
+- Both print `True`. `Any()` stops early; `Count()` may iterate fully for IEnumerable.
+
+Takeaway:
+- Prefer `Any()` to check non-emptiness of an IEnumerable.
+</details>
+
+<details>
+<summary>Q56. ToList materialization prevents multiple enumeration side effects</summary>
+
+```csharp
+var query = Enumerable.Range(1, 3).Select(n => {
+    Console.Write(n);
+    return n;
+});
+var list = query.ToList(); // prints during enumeration
+var sum = list.Sum();      // no extra prints
+```
+
+Answer:
+- Prints `123` once.
+
+Takeaway:
+- Deferred sequences are re-enumerated each time; materialize when reusing.
+</details>
+
+<details>
+<summary>Q57. OrderBy and ThenBy basics</summary>
+
+```csharp
+var people = new[]
+{
+    new { First="Alice", Last="Z" },
+    new { First="Bob", Last="Z" },
+    new { First="Bob", Last="A" },
+};
+var ordered = people.OrderBy(p => p.Last).ThenBy(p => p.First);
+Console.WriteLine(string.Join(" | ", ordered.Select(p => $"{p.Last},{p.First}")));
+```
+
+Answer:
+- Prints `A,Bob | Z,Alice | Z,Bob`.
+
+Takeaway:
+- `OrderBy` establishes primary key; `ThenBy` refines with secondary keys.
+</details>
+
+<details>
+<summary>Q58. SelectMany flattens sequences</summary>
+
+```csharp
+var words = new[] { "a b", "c d" };
+var parts = words.SelectMany(w => w.Split(' '));
+Console.WriteLine(string.Join(",", parts));
+```
+
+Answer:
+- Prints `a,b,c,d`.
+
+Takeaway:
+- `SelectMany` flattens nested sequences into a single sequence.
+</details>
+
+---
+
+## Simple async/await and Task Basics
+
+<details>
+<summary>Q59. Basic await — what prints order?</summary>
+
+```csharp
+async Task Demo()
+{
+    Console.WriteLine("Start");
+    await Task.Delay(50);
+    Console.WriteLine("End");
+}
+await Demo();
+```
+
+Answer:
+- Prints:
+  - Start
+  - End
+
+Takeaway:
+- `await` asynchronously yields control; execution resumes when the awaited task completes.
+</details>
+
+<details>
+<summary>Q60. Task.Run to offload work</summary>
+
+```csharp
+int Compute() { Thread.Sleep(50); return 42; }
+int result = await Task.Run(Compute);
+Console.WriteLine(result);
+```
+
+Answer:
+- Prints `42`. `Task.Run` executes CPU-bound work on a thread pool thread.
+
+Takeaway:
+- Use `Task.Run` to offload CPU-bound work; don’t wrap inherently asynchronous I/O with Task.Run unnecessarily.
+</details>
+
+<details>
+<summary>Q61. Async method returning Task — exceptions</summary>
+
+```csharp
+async Task<int> F()
+{
+    await Task.Delay(10);
+    throw new InvalidOperationException("boom");
+}
+try
+{
+    var x = await F();
+}
+catch (InvalidOperationException)
+{
+    Console.WriteLine("Caught");
+}
+```
+
+Answer:
+- Prints `Caught`. Exceptions in async methods are captured into the Task and rethrown on await.
+
+Takeaway:
+- Await to observe exceptions; don’t ignore tasks or use async void (except event handlers).
+</details>
+
+<details>
+<summary>Q62. Multiple awaits in sequence — order?</summary>
+
+```csharp
+await Task.Delay(10);
+await Task.Delay(10);
+Console.WriteLine("Done");
+```
+
+Answer:
+- Executes sequentially; total delay ~20ms plus overhead.
+
+Takeaway:
+- For independent operations, consider starting tasks concurrently and awaiting with `await Task.WhenAll(...)`.
+</details>
+
+<details>
+<summary>Q63. Returning completed tasks — fast path</summary>
+
+```csharp
+Task<int> Return42() => Task.FromResult(42);
+Console.WriteLine(await Return42());
+```
+
+Answer:
+- Prints `42`. `Task.FromResult` returns an already-completed Task without allocation of a state machine.
+
+Takeaway:
+- Use `Task.FromResult` for synchronous, already-known results.
+</details>
+
+---
+
+## File I/O Fundamentals
+
+<details>
+<summary>Q64. Reading and writing text files — basics</summary>
+
+```csharp
+string path = "hello.txt";
+File.WriteAllText(path, "Hi");
+string content = File.ReadAllText(path);
+Console.WriteLine(content);
+```
+
+Answer:
+- Prints `Hi`.
+
+Takeaway:
+- `File.WriteAllText` and `ReadAllText` are convenient for small text files.
+</details>
+
+<details>
+<summary>Q65. Using statements and streams — disposal order</summary>
+
+```csharp
+using var fs = File.OpenRead("hello.txt");
+using var sr = new StreamReader(fs);
+Console.WriteLine(await sr.ReadToEndAsync());
+```
+
+Answer:
+- Properly disposes `StreamReader` then `FileStream` at the end of scope.
+
+Takeaway:
+- Use `using` declarations for deterministic disposal of I/O resources.
+</details>
+
+<details>
+<summary>Q66. Path.Combine vs string concatenation</summary>
+
+```csharp
+string folder = "C:\\temp";
+string file = "data.txt";
+Console.WriteLine(Path.Combine(folder, file));
+```
+
+Answer:
+- Prints `C:\temp\data.txt`. `Path.Combine` handles separators and edge cases.
+
+Takeaway:
+- Use `Path.Combine` for safe, cross-platform path building.
+</details>
+
+<details>
+<summary>Q67. File.WriteAllLines and ReadAllLines</summary>
+
+```csharp
+string path = "lines.txt";
+File.WriteAllLines(path, new[] { "a", "b", "c" });
+Console.WriteLine(string.Join("-", File.ReadAllLines(path)));
+```
+
+Answer:
+- Prints `a-b-c`.
+
+Takeaway:
+- Use the `AllLines` helpers for small batches of lines.
+</details>
+
+<details>
+<summary>Q68. Async file read — don’t block</summary>
+
+```csharp
+await File.WriteAllTextAsync("data.txt", "content");
+string text = await File.ReadAllTextAsync("data.txt");
+Console.WriteLine(text);
+```
+
+Answer:
+- Prints `content`.
+
+Takeaway:
+- Prefer async I/O on server apps to avoid blocking threads.
+</details>
+
+---
+
+## Simple Unit Testing
+
+<details>
+<summary>Q69. Arrange-Act-Assert — basics</summary>
+
+```csharp
+// Pseudo xUnit
+int Add(int a, int b) => a + b;
+
+[Fact]
+public void Add_AddsTwoNumbers()
+{
+    // Arrange
+    var a = 2; var b = 3;
+
+    // Act
+    var result = Add(a, b);
+
+    // Assert
+    Assert.Equal(5, result);
+}
+```
+
+Answer:
+- Test passes. Clear AAA layout improves readability.
+
+Takeaway:
+- Structure tests with Arrange, Act, Assert for clarity and maintainability.
+</details>
+
+<details>
+<summary>Q70. Parameterized tests reduce duplication</summary>
+
+```csharp
+[Theory]
+[InlineData(1, 2, 3)]
+[InlineData(-1, 1, 0)]
+public void Add_Works(int a, int b, int expected)
+{
+    Assert.Equal(expected, a + b);
+}
+```
+
+Answer:
+- Runs multiple scenarios succinctly.
+
+Takeaway:
+- Use data-driven tests to cover more cases with less repetition.
+</details>
+
+<details>
+<summary>Q71. Testing exceptions — expected throws</summary>
+
+```csharp
+void RequireNonNull(string s)
+{
+    if (s is null) throw new ArgumentNullException(nameof(s));
+}
+[Fact]
+public void RequireNonNull_ThrowsOnNull()
+{
+    Assert.Throws<ArgumentNullException>(() => RequireNonNull(null!));
+}
+```
+
+Answer:
+- Test passes when exception is thrown.
+
+Takeaway:
+- Use `Assert.Throws` (or `Assert.ThrowsAsync`) for exception-based behavior.
+</details>
+
+<details>
+<summary>Q72. Avoid async void in tests</summary>
+
+```csharp
+[Fact]
+public async Task TestAsync()
+{
+    await Task.Delay(10);
+    Assert.True(true);
+}
+```
+
+Answer:
+- Correct. Tests should return `Task` for async operations.
+
+Takeaway:
+- `async void` cannot be awaited and may cause false positives or lost exceptions.
+</details>
+
+<details>
+<summary>Q73. Floating-point tolerance in tests</summary>
+
+```csharp
+[Fact]
+public void Double_Sum_Tolerance()
+{
+    var sum = 0.1 + 0.2;
+    Assert.True(Math.Abs(sum - 0.3) < 1e-12);
+}
+```
+
+Answer:
+- Test passes with a reasonable tolerance.
+
+Takeaway:
+- Use tolerances for floating-point comparisons; avoid exact equality.
+</details>
+
+---
+
+# Extended Fundamentals — Additional Quick Puzzles
+
+<details>
+<summary>Q74. Null-coalescing operator ??</summary>
+
+```csharp
+string? s = null;
+string r = s ?? "default";
+Console.WriteLine(r);
+```
+
+Answer:
+- Prints `default`.
+
+Takeaway:
+- `??` provides fallback when the left side is null.
+</details>
+
+<details>
+<summary>Q75. Null-conditional operator ?.</summary>
+
+```csharp
+string? s = null;
+Console.WriteLine(s?.ToUpper() ?? "none");
+```
+
+Answer:
+- Prints `none`.
+
+Takeaway:
+- `?.` short-circuits safely on null; combine with `??` to provide defaults.
+</details>
+
+<details>
+<summary>Q76. Ternary conditional operator basics</summary>
+
+```csharp
+int n = 5;
+string r = n % 2 == 0 ? "even" : "odd";
+Console.WriteLine(r);
+```
+
+Answer:
+- Prints `odd`.
+
+Takeaway:
+- Use the ternary operator for simple, concise conditional expressions.
+</details>
+
+<details>
+<summary>Q77. Enum basics and casting</summary>
+
+```csharp
+enum Color { Red = 1, Green = 2, Blue = 3 }
+Color c = (Color)2;
+Console.WriteLine(c);
+```
+
+Answer:
+- Prints `Green`.
+
+Takeaway:
+- Enums map named constants to integral values; casting between underlying integral type and enum is allowed.
+</details>
+
+<details>
+<summary>Q78. TryParse pattern</summary>
+
+```csharp
+if (int.TryParse("123", out int val))
+    Console.WriteLine(val);
+else
+    Console.WriteLine("invalid");
+```
+
+Answer:
+- Prints `123`.
+
+Takeaway:
+- Prefer `TryParse` to avoid exceptions during parsing.
+</details>
+
+<details>
+<summary>Q79. DateTime formatting basics</summary>
+
+```csharp
+var dt = new DateTime(2025, 1, 2, 15, 4, 5);
+Console.WriteLine(dt.ToString("yyyy-MM-dd HH:mm:ss"));
+```
+
+Answer:
+- Prints `2025-01-02 15:04:05`.
+
+Takeaway:
+- Use format strings for consistent date/time output; beware of culture defaults when not specifying formats.
+</details>
+
+<details>
+<summary>Q80. String.Join vs concatenation in loops</summary>
+
+```csharp
+var arr = new[] { "a", "b", "c" };
+Console.WriteLine(string.Join(",", arr));
+```
+
+Answer:
+- Prints `a,b,c`.
+
+Takeaway:
+- `string.Join` is efficient and concise for joining collections.
+</details>
+
+<details>
+<summary>Q81. IndexOf returns -1 when not found</summary>
+
+```csharp
+string s = "abc";
+Console.WriteLine(s.IndexOf("d")); // ?
+```
+
+Answer:
+- Prints `-1`.
+
+Takeaway:
+- Check for `-1` before slicing or indexing from search results.
+</details>
+
+<details>
+<summary>Q82. Array.Sort in-place</summary>
+
+```csharp
+int[] a = {3,1,2};
+Array.Sort(a);
+Console.WriteLine(string.Join(",", a));
+```
+
+Answer:
+- Prints `1,2,3`.
+
+Takeaway:
+- `Array.Sort` mutates the array; `OrderBy` creates a new sequence.
+</details>
+
+<details>
+<summary>Q83. Null checks with guard clauses</summary>
+
+```csharp
+void Process(string input)
+{
+    ArgumentNullException.ThrowIfNull(input);
+    Console.WriteLine(input.Length);
+}
+```
+
+Answer:
+- Throws when `input` is null; otherwise prints the length.
+
+Takeaway:
+- Use guard clauses early to validate inputs and simplify function bodies.
+</details>
+
+<details>
+<summary>Q84. Using StringComparison with StartsWith</summary>
+
+```csharp
+Console.WriteLine("straße".StartsWith("STR", StringComparison.CurrentCultureIgnoreCase));
+```
+
+Answer:
+- Culture-sensitive; may return True depending on culture rules. For predictable results, use `OrdinalIgnoreCase` when culture-insensitive comparison is desired.
+
+Takeaway:
+- Choose `StringComparison` explicitly to avoid ambiguous behavior across cultures.
+</details>
+
+<details>
+<summary>Q85. Any vs All</summary>
+
+```csharp
+var nums = new[] { 2, 4, 6 };
+Console.WriteLine(nums.Any(n => n % 2 != 0)); // any odd?
+Console.WriteLine(nums.All(n => n % 2 == 0)); // all even?
+```
+
+Answer:
+- Prints:
+  - False
+  - True
+
+Takeaway:
+- `Any` tests existence; `All` tests universality.
+</details>
+
+<details>
+<summary>Q86. Select with index overload</summary>
+
+```csharp
+var v = new[] { "a", "b" }.Select((s, i) => $"{i}:{s}");
+Console.WriteLine(string.Join(",", v));
+```
+
+Answer:
+- Prints `0:a,1:b`.
+
+Takeaway:
+- Use the index-aware overload for position-dependent projections.
+</details>
+
+<details>
+<summary>Q87. Simple Task.WhenAll</summary>
+
+```csharp
+var tasks = new[]
+{
+    Task.Delay(10),
+    Task.Delay(10)
+};
+await Task.WhenAll(tasks);
+Console.WriteLine("All done");
+```
+
+Answer:
+- Prints `All done` after both complete.
+
+Takeaway:
+- `Task.WhenAll` awaits all tasks concurrently and propagates exceptions.
+</details>
+
+<details>
+<summary>Q88. File.Exists before reading</summary>
+
+```csharp
+string path = "maybe.txt";
+if (File.Exists(path))
+    Console.WriteLine(File.ReadAllText(path));
+else
+    Console.WriteLine("Missing");
+```
+
+Answer:
+- Prints file content if present; else prints `Missing`.
+
+Takeaway:
+- Check file existence to avoid exceptions; still handle TOCTOU in robust code (the file may be deleted between check and read).
+</details>
+
+<details>
+<summary>Q89. StreamReader ReadLine loop</summary>
+
+```csharp
+using var sr = new StreamReader("lines.txt");
+string? line;
+while ((line = sr.ReadLine()) is not null)
+{
+    Console.WriteLine(line);
+}
+```
+
+Answer:
+- Reads and prints lines until EOF.
+
+Takeaway:
+- Classic pattern for line-by-line file processing.
+</details>
+
+<details>
+<summary>Q90. Basic stopwatch timing</summary>
+
+```csharp
+var sw = System.Diagnostics.Stopwatch.StartNew();
+Thread.Sleep(50);
+sw.Stop();
+Console.WriteLine(sw.ElapsedMilliseconds >= 50);
+```
+
+Answer:
+- Prints `True`.
+
+Takeaway:
+- Use `Stopwatch` for simple performance measurements; prefer multiple iterations for stability.
+</details>
+
+<details>
+<summary>Q91. Dictionary iteration order</summary>
+
+```csharp
+var d = new Dictionary<int,string> { [2]="b", [1]="a" };
+Console.WriteLine(string.Join(",", d.Keys));
+```
+
+Answer:
+- In .NET Core/.NET 5+ insertion order is preserved for Dictionary iteration as an implementation detail, but do not rely on it for cross-platform/compat unless documented.
+
+Takeaway:
+- If you need sorted order, use `SortedDictionary` or sort separately.
+</details>
+
+<details>
+<summary>Q92. Null forgiving (!) and actual null values</summary>
+
+```csharp
+string? s = null;
+Console.WriteLine(s!.Length); // ?
+```
+
+Answer:
+- Compiles but throws `NullReferenceException` at runtime.
+
+Takeaway:
+- `!` only suppresses compiler warnings; it doesn’t prevent runtime nulls.
+</details>
+
+<details>
+<summary>Q93. Try-catch around parsing with default</summary>
+
+```csharp
+int value;
+try
+{
+    value = int.Parse("abc");
+}
+catch
+{
+    value = 0;
+}
+Console.WriteLine(value);
+```
+
+Answer:
+- Prints `0`.
+
+Takeaway:
+- Prefer `TryParse` to avoid exceptions; use try-catch for exceptional flows.
+</details>
+
+<details>
+<summary>Q94. Environment.NewLine vs "\n"</summary>
+
+```csharp
+Console.Write("A" + Environment.NewLine + "B");
+```
+
+Answer:
+- Prints A and B on separate lines, using the platform-specific newline.
+
+Takeaway:
+- Use `Environment.NewLine` for platform-correct line breaks in non-interpolated contexts.
+</details>
+
+<details>
+<summary>Q95. Using directive aliases for clarity</summary>
+
+```csharp
+using IO = System.IO;
+IO.File.WriteAllText("x.txt", "content");
+```
+
+Answer:
+- Writes to file; alias improves readability when frequently using a namespace.
+
+Takeaway:
+- Namespace aliases can reduce verbosity in heavily-used namespaces.
+</details>
+
+<details>
+<summary>Q96. Basic switch over enums with default</summary>
+
+```csharp
+enum Op { Add, Sub }
+int Apply(int a, int b, Op op) => op switch
+{
+    Op.Add => a + b,
+    Op.Sub => a - b,
+    _ => throw new NotSupportedException()
+};
+Console.WriteLine(Apply(3,2,Op.Sub));
+```
+
+Answer:
+- Prints `1`.
+
+Takeaway:
+- Switch expressions over enums are concise; include a default case for future-proofing.
+</details>
+
+<details>
+<summary>Q97. StringBuilder for repeated concatenation</summary>
+
+```csharp
+var sb = new System.Text.StringBuilder();
+for (int i = 0; i < 3; i++) sb.Append(i);
+Console.WriteLine(sb.ToString());
+```
+
+Answer:
+- Prints `012`.
+
+Takeaway:
+- Prefer `StringBuilder` for many concatenations in loops.
+</details>
+
+<details>
+<summary>Q98. Basic tuple return and deconstruction</summary>
+
+```csharp
+(int sum, int diff) Calc(int a, int b) => (a+b, a-b);
+var (s, d) = Calc(5, 3);
+Console.WriteLine($"{s},{d}");
+```
+
+Answer:
+- Prints `8,2`.
+
+Takeaway:
+- Tuples are handy for returning multiple values without a class.
+</details>
+
+<details>
+<summary>Q99. Simple record for immutable data</summary>
+
+```csharp
+public record Point(int X, int Y);
+var p1 = new Point(1,2);
+var p2 = p1 with { X = 3 };
+Console.WriteLine($"{p1}, {p2}");
+```
+
+Answer:
+- Prints `Point { X = 1, Y = 2 }, Point { X = 3, Y = 2 }`.
+
+Takeaway:
+- Records provide concise immutable data carriers with value semantics.
+</details>
+
+<details>
+<summary>Q100. Minimal Program and top-level statements</summary>
+
+```csharp
+Console.WriteLine("Hello, world!");
+```
+
+Answer:
+- In C# 9+, you can write top-level statements without an explicit Program class.
+
+Takeaway:
+- Top-level statements simplify small apps and teaching examples.
+</details>
+
+---
+
+
+
+## Mid-Level Engineers
+### Table of Contents
 
 - Core C# Language Behavior
   - Numeric conversions, overflow, checked/unchecked
