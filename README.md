@@ -1,7 +1,7 @@
 # The Ultimate .NET and C# Interview Questions
 
-Audience: Senior .NET engineers. Version assumptions: C# 12, .NET 8+.
-## Junior Engineers
+Audience: Junior, Mid-level, Senior, and Staff .NET engineers. Version assumptions: C# 12, .NET 8+.
+## Junior and Mid-level Engineers
 ### Table of Contents
 
 - Variables, Data Types, and Type Inference
@@ -1957,7 +1957,7 @@ Takeaway:
 
 
 
-## Mid-Level Engineers
+## Senior and Staff Engineers
 ### Table of Contents
 
 - Core C# Language Behavior
